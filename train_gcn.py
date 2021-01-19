@@ -62,43 +62,6 @@ def run_func(model, optim, data_loader, data_type, args, write_path=None,
         if args.val_stat == 'rmse':
             loss = torch.mean((labels - preds) ** 2)
             stats_tracker.add_stat('mse', loss.item() * n_data, n_data)
-        elif args.val_stat in ['auc', 'acc']:
-            pred_probs = nn.Sigmoid()(preds)
-            loss = nn.BCELoss()(input=pred_probs, target=labels)
-            stats_tracker.add_stat('ce', loss.item() * n_data, n_data)
-
-            # Aggregate predictions to compute Acc/AUC
-            all_preds.append(pred_probs.detach().cpu().numpy())
-            all_labels.append(np.array(labels_list))
-        elif args.val_stat == 'mae':
-            loss = torch.mean(torch.abs(labels - preds))
-            stats_tracker.add_stat('mae', loss.item() * n_data, n_data)
-        elif args.val_stat == 'multi_obj':
-            total_loss = 0
-            for i in range(args.n_labels):
-                cur_preds = preds[:, i].unsqueeze(1)
-                cur_labels = labels[:, i].unsqueeze(1)
-                cur_mask = mask[:, i].unsqueeze(1)
-
-                n_sum = torch.sum(cur_mask).item()
-                if n_sum == 0:
-                    continue
-
-                all_preds[i].append(cur_preds[cur_mask.byte()].detach().cpu().numpy())
-                all_labels[i].append(cur_labels[cur_mask.byte()].detach().cpu().numpy())
-                task_stat = args.label_task_list[i]
-                if task_stat == 'rmse':
-                    loss = (cur_preds - cur_labels) ** 2
-                    loss = torch.sum(loss * cur_mask)
-                    total_loss += loss
-                if task_stat in ['auc', 'acc']:
-                    loss = nn.BCEWithLogitsLoss(reduction='none')(input=cur_preds, target=cur_labels)
-                    loss = torch.sum(loss * cur_mask)
-                    total_loss += loss
-                else:
-                    assert False
-            loss = total_loss / n_data
-            stats_tracker.add_stat('loss', loss.item() * n_data, n_data)
         else:
             assert False
 
@@ -121,15 +84,6 @@ def run_func(model, optim, data_loader, data_type, args, write_path=None,
         if args.val_stat == 'rmse':
             mse = stats_tracker.get_stats()['mse']
             stats_tracker.add_stat('rmse', mse ** 0.5, 1)
-        elif args.val_stat in ['auc', 'acc']:
-            all_preds = np.squeeze(np.concatenate(all_preds), axis=1)
-            all_labels = np.concatenate(all_labels)
-
-            acc = np.mean((all_preds > 0.5) == all_labels)
-            stats_tracker.add_stat('acc', -1 * acc, 1)
-
-            auc = roc_auc_score(y_true=all_labels, y_score=all_preds)
-            stats_tracker.add_stat('auc', -1 * auc, 1)
     else:
         all_stats = []
         for label_idx in range(args.n_labels):
@@ -141,15 +95,6 @@ def run_func(model, optim, data_loader, data_type, args, write_path=None,
                 mse = np.mean((cur_preds - cur_labels) ** 2)
                 stats_tracker.add_stat('%s_mse' % data_name, mse, 1)
                 stats_tracker.add_stat('%s_rmse' % data_name, mse ** 0.5, 1)
-            elif args.label_task_list[i] in ['auc', 'acc']:
-                cur_pred_probs = 1 / (1 + np.exp(-cur_preds))
-                acc = np.mean((cur_pred_probs > 0.5) == cur_labels)
-
-                auc = roc_auc_score(y_true=cur_labels, y_score=cur_pred_probs)
-                stats_tracker.add_stat('%s_acc' % data_name, acc, 1)
-                stats_tracker.add_stat('%s_auc' % data_name, auc, 1)
-
-                all_stats.append(-1 * auc)
             else:
                 assert False
         stats_tracker.add_stat('multi_obj', np.mean(np.array(all_stats)), 1)
