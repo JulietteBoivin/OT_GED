@@ -80,35 +80,6 @@ def run_func(model, optim, data_loader, data_type, args, write_path=None,
             loss = torch.mean((labels - preds) ** 2)
             stats_tracker.add_stat('mse', loss.item() * n_data, n_data)
             all_preds.append(preds.detach().cpu().numpy())
-                
-        
-        elif args.val_stat == 'multi_obj':
-            # iterate through each label and compute the loss and aggregate
-            total_loss = 0
-            for i in range(args.n_labels):
-                cur_preds = preds[:, i].unsqueeze(1)
-                cur_labels = labels[:, i].unsqueeze(1)
-                cur_mask = mask[:, i].unsqueeze(1)
-
-                n_sum = torch.sum(cur_mask).item()
-                if n_sum == 0:
-                    continue
-
-                all_preds[i].append(cur_preds[cur_mask.byte()].detach().cpu().numpy())
-                all_labels[i].append(cur_labels[cur_mask.byte()].detach().cpu().numpy())
-                task_stat = args.label_task_list[i]
-                if task_stat == 'rmse':
-                    loss = (cur_preds - cur_labels) ** 2
-                    loss = torch.sum(loss * cur_mask)
-                    total_loss += loss
-                if task_stat in ['auc', 'acc']:
-                    loss = nn.BCEWithLogitsLoss(reduction='none')(input=cur_preds, target=cur_labels)
-                    loss = torch.sum(loss * cur_mask)
-                    total_loss += loss
-                else:
-                    assert False
-
-            loss = total_loss / n_data
         else:
             assert False
             
