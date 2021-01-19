@@ -5,11 +5,6 @@ from utils import write_args
 
 
 DATA_TASK = {
-    'sol_test': 'rmse',
-    'sol': 'rmse',
-    'lipo': 'rmse',
-    'bace': 'auc',
-    'bbbp': 'auc',
     'fingerprint': 'rmse',
 }
 
@@ -22,8 +17,6 @@ def get_args():
     # Data/Output Directories Params
     parser.add_argument('-data', required=True, help='Task, see above')
     parser.add_argument('-output_dir', default='', help='Output directory')
-#    parser.add_argument('-log_tb', action='store_true', default=False,
-#                        help='Use tensorboard to log')
     parser.add_argument('-write_every', type=int, default=20,
                         help='Write val results every this many epochs')
 
@@ -42,9 +35,9 @@ def get_args():
                         help='Static learning rate of the optimizer')
     parser.add_argument('-separate_lr', action='store_true', default=False,
                         help='Whether to use different lr for pc')
-    parser.add_argument('-lr_pc', type=float, default=1e-2,
-                        help='The learning rate for point clouds')
-    parser.add_argument('-pc_xavier_std', type=float, default=0.1)
+    #parser.add_argument('-lr_pc', type=float, default=1e-2,
+     #                   help='The learning rate for point clouds')
+    #parser.add_argument('-pc_xavier_std', type=float, default=0.1)
     parser.add_argument('-batch_size', type=int, default=48,
                         help='Number of examples in each batch')
     parser.add_argument('-max_grad_norm', type=float, default=10,
@@ -68,23 +61,11 @@ def get_args():
                         help='Whether or not to normalize atom embeds')
 
     # Prototype Params
-#    parser.add_argument('-init_method', default='none',
-#                        choices=['none', 'various', 'data'])
     parser.add_argument('-distance_metric', type=str, default='wasserstein',
                         choices=['l2', 'wasserstein', 'dot'])
-#    parser.add_argument('-n_pc', type=int, default=2,
-#                        help='Number of point clouds')
-#    parser.add_argument('-pc_size', type=int, default=20,
-#                        help='Number of points in each point cloud')
-#    parser.add_argument('-pc_hidden', type=int, default=-1,
-#                        help='Hidden dim for point clouds, different from GCN hidden dim')
-#    parser.add_argument('-pc_free_epoch', type=int, default=0,
-#                        help='If intialized with data, when to free pc')
     parser.add_argument('-ffn_activation', type=str, choices=['ReLU', 'LeakyReLU'],
                         default='LeakyReLU')
-#    parser.add_argument('-mult_num_atoms', action='store_true', default=True,
-#                        help='Whether to multiply the dist by number of atoms')
-
+    
     # OT Params
     parser.add_argument('-opt_method', type=str, default='sinkhorn_stabilized',
                         choices=['sinkhorn', 'sinkhorn_stabilized', 'emd',
@@ -97,16 +78,6 @@ def get_args():
                         help='Max num it for sinkhorn')
     parser.add_argument('-unbalanced', action='store_true', default=False)
     parser.add_argument('-nce_coef', type=float, default=0.)
-
-    # Plot Params
-#    parser.add_argument('-plot_pc', action='store_true', default=False,
-#                        help='Whether to plot the point clouds')
-#    parser.add_argument('-plot_num_ex', type=int, default=5,
-#                        help='Number of molecule examples to plot')
-#    parser.add_argument('-plot_freq', type=int, default=10,
-#                        help='Frequency of plotting')
-#    parser.add_argument('-plot_max', type=int, default=1000,
-#                        help='Maximum number of plots to make')
 
     args = parser.parse_args()
     args.device = 'cuda:0' if args.cuda else 'cpu'
